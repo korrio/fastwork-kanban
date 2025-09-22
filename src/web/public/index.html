@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fastwork Job Kanban Board</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-briefcase"></i> Fastwork Job Kanban</h1>
+                <div class="header-actions">
+                    <button id="fetch-jobs-btn" class="btn btn-primary">
+                        <i class="fas fa-download"></i> Fetch Jobs
+                    </button>
+                    <button id="analyze-jobs-btn" class="btn btn-secondary">
+                        <i class="fas fa-brain"></i> Analyze
+                    </button>
+                    <button id="refresh-btn" class="btn btn-accent">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                    <button id="clear-storage-btn" class="btn btn-warning">
+                        <i class="fas fa-trash"></i> Clear Local
+                    </button>
+                    <button id="fetch-all-btn" class="btn btn-info">
+                        <i class="fas fa-globe"></i> Fetch All (No Filter)
+                    </button>
+                    <button id="github-test-btn" class="btn btn-secondary">
+                        <i class="fab fa-github"></i> Test GitHub
+                    </button>
+                    <button id="github-sync-btn" class="btn btn-github">
+                        <i class="fab fa-github"></i> Sync to GitHub
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Statistics Bar -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-label">Total Jobs:</span>
+                <span id="total-jobs" class="stat-value">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Interested:</span>
+                <span id="interested-count" class="stat-value">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Proposed:</span>
+                <span id="proposed-count" class="stat-value">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Avg Budget:</span>
+                <span id="avg-budget" class="stat-value">0 THB</span>
+            </div>
+        </div>
+
+        <!-- Kanban Board -->
+        <main class="kanban-board">
+            <!-- Jobs Column -->
+            <div class="kanban-column" data-status="jobs">
+                <div class="column-header">
+                    <h2><i class="fas fa-list"></i> Available Jobs</h2>
+                    <span id="jobs-count" class="count-badge">0</span>
+                </div>
+                <div class="column-content" id="jobs-column">
+                    <!-- Job cards will be dynamically inserted here -->
+                </div>
+            </div>
+
+            <!-- Interested Column -->
+            <div class="kanban-column" data-status="interested">
+                <div class="column-header">
+                    <h2><i class="fas fa-star"></i> Interested</h2>
+                    <span id="interested-count-badge" class="count-badge">0</span>
+                </div>
+                <div class="column-content" id="interested-column">
+                    <!-- Job cards will be dynamically inserted here -->
+                </div>
+            </div>
+
+            <!-- Proposed Column -->
+            <div class="kanban-column" data-status="proposed">
+                <div class="column-header">
+                    <h2><i class="fas fa-handshake"></i> Proposed</h2>
+                    <span id="proposed-count-badge" class="count-badge">0</span>
+                </div>
+                <div class="column-content" id="proposed-column">
+                    <!-- Job cards will be dynamically inserted here -->
+                </div>
+            </div>
+
+            <!-- Archived Column -->
+            <div class="kanban-column" data-status="archived">
+                <div class="column-header">
+                    <h2><i class="fas fa-archive"></i> Archived</h2>
+                    <span id="archived-count-badge" class="count-badge">0</span>
+                </div>
+                <div class="column-content" id="archived-column">
+                    <!-- Job cards will be dynamically inserted here -->
+                </div>
+            </div>
+        </main>
+
+        <!-- Loading Indicator -->
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <p>Loading...</p>
+        </div>
+
+        <!-- Notification Toast -->
+        <div id="toast" class="toast hidden">
+            <span id="toast-message"></span>
+        </div>
+    </div>
+
+    <!-- Job Detail Modal -->
+    <div id="job-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Job Details</h3>
+                <button id="close-modal" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="job-detail-section">
+                    <h4>Information</h4>
+                    <p><strong>Budget:</strong> <span id="modal-budget"></span></p>
+                    <p><strong>Category:</strong> <span id="modal-category"></span></p>
+                    <p><strong>Created:</strong> <span id="modal-created"></span></p>
+                    <p><strong>URL:</strong> <a id="modal-url" href="#" target="_blank">View on Fastwork</a></p>
+                </div>
+                
+                <div class="job-detail-section">
+                    <h4>Description</h4>
+                    <div id="modal-description" class="description-content"></div>
+                </div>
+
+                <div class="job-detail-section">
+                    <h4>AI Analysis</h4>
+                    <div id="modal-analysis" class="analysis-content"></div>
+                </div>
+
+                <div class="job-detail-section">
+                    <h4>Notes</h4>
+                    <textarea id="modal-notes" placeholder="Add your notes here..." rows="3"></textarea>
+                    <button id="save-notes-btn" class="btn btn-small btn-primary">Save Notes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

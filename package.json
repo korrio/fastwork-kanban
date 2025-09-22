@@ -1,0 +1,52 @@
+{
+  "name": "fastwork-job-bot",
+  "version": "1.0.0",
+  "description": "Job bot that fetches, analyzes, and notifies about Fastwork jobs",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "init-db": "node src/database/init.js",
+    "tui": "node src/tui-simple/index.js",
+    "tui-old": "node src/tui/index.js",
+    "cli": "node src/cli/index.js",
+    "server": "node src/server/index.js",
+    "cron": "node src/cron/index.js",
+    "build": "npm run init-db",
+    "pm2:start": "pm2 start ecosystem.config.cjs",
+    "pm2:stop": "pm2 stop ecosystem.config.cjs",
+    "pm2:restart": "pm2 restart ecosystem.config.cjs",
+    "pm2:delete": "pm2 delete ecosystem.config.cjs",
+    "pm2:logs": "pm2 logs",
+    "pm2:status": "pm2 status",
+    "pm2:cron": "pm2 start ecosystem.config.cjs --only fastwork-cron",
+    "pm2:server": "pm2 start ecosystem.config.cjs --only fastwork-server",
+    "pm2:monit": "pm2 monit"
+  },
+  "dependencies": {
+    "sqlite3": "^5.1.6",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "ink": "^4.4.1",
+    "ink-select-input": "^5.0.0",
+    "ink-spinner": "^5.0.0",
+    "react": "^18.2.0",
+    "chalk": "^5.3.0",
+    "moment": "^2.29.4",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "@babel/core": "^7.23.0",
+    "@babel/preset-react": "^7.22.0",
+    "@babel/register": "^7.22.0",
+    "pm2": "^5.3.0"
+  },
+  "keywords": ["job-bot", "fastwork", "automation"],
+  "author": "",
+  "license": "MIT"
+}
