@@ -70,9 +70,11 @@ export class JobProcessor {
                 }
             }
 
-            const eligibleJobs = this.filterJobsByBudget(allJobs);
+            // Filter by date (exclude jobs from past month) and budget
+            const dateFilteredJobs = this.filterJobsByDate(allJobs);
+            const eligibleJobs = this.filterJobsByBudget(dateFilteredJobs);
             
-            // Log budget filtering results
+            // Log filtering results
             const budgetCounts = allJobs.reduce((acc, job) => {
                 const budget = this.extractBudget(job);
                 if (budget >= this.minBudget) acc.high++;
@@ -81,11 +83,13 @@ export class JobProcessor {
                 return acc;
             }, { high: 0, low: 0, none: 0 });
             
-            logger.logJobProcessing('BUDGET_FILTERING', eligibleJobs.length, null, null, {
+            logger.logJobProcessing('FILTERING_RESULTS', eligibleJobs.length, null, null, {
                 totalFetched: allJobs.length,
-                afterFiltering: eligibleJobs.length,
+                afterDateFilter: dateFilteredJobs.length,
+                afterBudgetFilter: eligibleJobs.length,
                 budgetBreakdown: budgetCounts,
-                minBudget: this.minBudget
+                minBudget: this.minBudget,
+                oneMonthAgoFilter: true
             });
             
             // If we don't have enough eligible jobs, try to get more
@@ -154,6 +158,28 @@ export class JobProcessor {
         } finally {
             db.close();
         }
+    }
+
+    filterJobsByDate(jobs) {
+        // Calculate cutoff date (1 month ago)
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+        
+        return jobs.filter(job => {
+            try {
+                // Use inserted_at or created_at for date filtering
+                const jobDate = new Date(job.inserted_at || job.created_at);
+                return jobDate >= oneMonthAgo;
+            } catch (error) {
+                // If date parsing fails, include the job to be safe
+                logger.logError('JobProcessor.filterJobsByDate', error, {
+                    jobId: job.id,
+                    inserted_at: job.inserted_at,
+                    created_at: job.created_at
+                });
+                return true;
+            }
+        });
     }
 
     filterJobsByBudget(jobs) {

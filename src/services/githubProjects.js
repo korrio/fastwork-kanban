@@ -26,6 +26,7 @@ export class GitHubProjectsService {
             startDate: null,
             endDate: null
         };
+        this.fieldTypes = {};
     }
 
     async initialize() {
@@ -70,6 +71,11 @@ export class GitHubProjectsService {
                                         name
                                     }
                                 }
+                                ... on ProjectV2IterationField {
+                                    id
+                                    name
+                                    dataType
+                                }
                             }
                         }
                     }
@@ -92,12 +98,21 @@ export class GitHubProjectsService {
         // Map field names to IDs for commonly used fields
         project.fields.nodes.forEach(field => {
             const fieldName = field.name.toLowerCase();
+            // Store field type information
+            this.fieldTypes[field.id] = {
+                dataType: field.dataType,
+                options: field.options || null
+            };
+            
             if (fieldName.includes('budget')) {
                 this.fieldIds.budget = field.id;
             } else if (fieldName.includes('category')) {
                 this.fieldIds.category = field.id;
             } else if (fieldName.includes('tag') || fieldName.includes('label')) {
-                this.fieldIds.tags = field.id;
+                // Only map if it's a text field, not labels
+                if (field.dataType === 'TEXT') {
+                    this.fieldIds.tags = field.id;
+                }
             } else if (fieldName.includes('status')) {
                 this.fieldIds.status = field.id;
             } else if (fieldName.includes('size')) {
@@ -229,7 +244,7 @@ export class GitHubProjectsService {
             // Add issue to project
             const addToProjectMutation = `
                 mutation($projectId: ID!, $contentId: ID!) {
-                    addProjectV2ItemByContentId(
+                    addProjectV2ItemById(
                         input: {
                             projectId: $projectId
                             contentId: $contentId
@@ -252,17 +267,17 @@ export class GitHubProjectsService {
                 jobTitle: jobData.title,
                 issueNumber: issue.number,
                 issueUrl: issue.html_url,
-                projectItemId: projectResponse.data.addProjectV2ItemByContentId.item.id,
+                projectItemId: projectResponse.data.addProjectV2ItemById.item.id,
                 budget: jobData.budget,
                 labels: [jobData.category, ...tags]
             });
 
             // Update custom fields if available
-            await this.updateProjectItemFields(projectResponse.data.addProjectV2ItemByContentId.item.id, jobData);
+            await this.updateProjectItemFields(projectResponse.data.addProjectV2ItemById.item.id, jobData);
 
             return {
                 success: true,
-                projectItemId: projectResponse.data.addProjectV2ItemByContentId.item.id,
+                projectItemId: projectResponse.data.addProjectV2ItemById.item.id,
                 issueId: issue.id,
                 issueNumber: issue.number,
                 issueUrl: issue.html_url,
@@ -306,12 +321,25 @@ export class GitHubProjectsService {
 
         // Update size field based on budget if exists
         if (this.fieldIds.size && jobData.budget) {
-            const size = this.calculateSize(jobData.budget);
-            updates.push({
-                fieldId: this.fieldIds.size,
-                value: size,
-                type: 'singleSelect'
-            });
+            const fieldType = this.fieldTypes[this.fieldIds.size];
+            if (fieldType && fieldType.dataType === 'SINGLE_SELECT' && fieldType.options) {
+                const size = this.calculateSize(jobData.budget);
+                const option = fieldType.options.find(opt => opt.name === size);
+                if (option) {
+                    updates.push({
+                        fieldId: this.fieldIds.size,
+                        value: option.id,
+                        type: 'singleSelect'
+                    });
+                }
+            } else if (fieldType && fieldType.dataType === 'TEXT') {
+                const size = this.calculateSize(jobData.budget);
+                updates.push({
+                    fieldId: this.fieldIds.size,
+                    value: size,
+                    type: 'text'
+                });
+            }
         }
 
         // Update start date (use inserted_at as project start)
@@ -342,6 +370,7 @@ export class GitHubProjectsService {
         if (this.fieldIds.tags) {
             const tags = this.generateTags(jobData);
             if (tags.length > 0) {
+                // Only update if it's a text field, not labels field
                 updates.push({
                     fieldId: this.fieldIds.tags,
                     value: tags.join(', '),
@@ -366,6 +395,16 @@ export class GitHubProjectsService {
     }
 
     async updateProjectItemField(projectItemId, fieldId, value, type = 'text') {
+        // Check if field type is supported
+        const fieldType = this.fieldTypes[fieldId];
+        if (fieldType && fieldType.dataType === 'LABELS') {
+            logger.logInfo('GitHubProjectsService.updateProjectItemField', 'Skipping unsupported labels field', {
+                fieldId,
+                dataType: fieldType.dataType
+            });
+            return { data: { updateProjectV2ItemFieldValue: { projectV2Item: { id: projectItemId } } } };
+        }
+
         const mutation = `
             mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
                 updateProjectV2ItemFieldValue(
@@ -427,7 +466,7 @@ export class GitHubProjectsService {
             `**Category:** ${jobData.category || 'Other'}`,
             `**Start Date:** ${startDate || 'Not specified'}`,
             `**End Date:** ${endDate || 'Not specified'}`,
-            `**Fastwork URL:** [View Job](${jobData.url})`,
+            `**Fastwork URL:** [View Job](https://jobboard.fastwork.co/jobs/${jobData.id})`,
             ``,
             `## Description`,
             jobData.description || 'No description provided',
